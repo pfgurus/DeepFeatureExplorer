@@ -1,0 +1,6 @@
+Additional Notes
+- Supported image formats: png, jpg, jpeg
+- Crop bbox around input image window using left mouse button
+- Deselect normalize to view original tensor value
+  when hovered over output/feature window
+- RGB will display selected_channel: selected_channel+3
