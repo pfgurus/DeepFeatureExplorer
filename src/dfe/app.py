@@ -6,7 +6,7 @@ import torch
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QLineEdit, QPushButton, QCheckBox,
     QGridLayout, QSpinBox,
-    QFileDialog, QStyleFactory
+    QFileDialog
 )
 
 from dfe.common.types import RGB255
