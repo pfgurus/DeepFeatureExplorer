@@ -12,7 +12,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     package_data={
-        "dfe": ["*.txt",],
+        "deep_feature_explorer": ["*.txt",],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
