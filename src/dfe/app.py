@@ -114,7 +114,7 @@ class NetworkVisualizerApplication(QMainWindow):
         # Help text
         self.help_text_display = QLabel()
         #help_text = open(str(Path(__file__).parent /'../../assets/help.txt'),'r').read()
-        help_text = open('assets/help.txt','r').read()
+        help_text = open(str(Path(__file__).parent/'assets/help.txt'),'r').read()
         self.help_text_display.setText(help_text)
 
         self.feature_maps_table =  SelectionTableWidget()
