@@ -2,7 +2,7 @@
 Visualize intermediate activations of a network for any image in a very intuitive UI. Retrieves intermediate 
 feature maps from the network and displays them. 
 
-![GUI Screenshot](./assets/screenshot.png)
+![GUI Screenshot](resources/screenshot.png)
 
 
 ## Installation
