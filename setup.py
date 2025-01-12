@@ -11,6 +11,10 @@ setup(
     url="https://github.com/pfgurus/NetworkVisualizer",  # URL to your project
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    include_package_data=True,
+    package_data={
+        "dfe": ["*.txt",],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
