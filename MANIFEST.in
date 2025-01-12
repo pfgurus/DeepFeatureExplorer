@@ -1,1 +1,2 @@
 include src/dfe/assets/*.txt
+recursive-include src/dfe/assets *.txt
