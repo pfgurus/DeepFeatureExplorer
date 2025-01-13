@@ -190,21 +190,22 @@ class NetworkVisualizerApplication(QMainWindow):
         self.channel_selector.setRange(0, feature_map.channels)
         self.channel_selector_label.setText(f'/{feature_map.channels} Channels')
         channel_idx = self.channel_selector.value()
-        if self.rgb_button.isChecked() and channel_idx+2 < feature_map.channels:
-            feature_img = feature_img[:,:,channel_idx:channel_idx+3]
-        else:
-            if feature_img.shape[-1] !=3:
-                feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
+        if channel_idx < feature_map.channels:
+            if self.rgb_button.isChecked() and channel_idx+2 < feature_map.channels:
+                feature_img = feature_img[:,:,channel_idx:channel_idx+3]
             else:
-                feature_img = feature_img[:,:,:channel_idx]
-            # feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
+                if feature_img.shape[-1] !=3:
+                    feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
+                else:
+                    feature_img = feature_img[:,:,:channel_idx]
+                # feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
 
-        if self.normalize_button.isChecked():
-            feature_img = (feature_img - feature_img.min())/(feature_img.max() - feature_img.min())
+            if self.normalize_button.isChecked():
+                feature_img = (feature_img - feature_img.min())/(feature_img.max() - feature_img.min())
 
-        # Process feature image
-        self._img_feat_display = feature_img
-        self.display_images()
+            # Process feature image
+            self._img_feat_display = feature_img
+            self.display_images()
 
 
     def load(self):
