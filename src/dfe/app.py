@@ -30,11 +30,13 @@ class NetworkVisualizerApplication(QMainWindow):
         # Internals
         self._crop_bbox         = None  # (x1, y1, x2, y2)
         self._input_img         = get_default_image()
+        self._target_img        = get_default_image("target_image")
         self._result            = {}
         self._feature_maps      = {}
 
         # Images to display
         self._img_in_display    = self._input_img
+        self._img_target_display    = self._target_img
         self._img_feat_display  = self._input_img
 
         self._init_ui()
@@ -62,19 +64,48 @@ class NetworkVisualizerApplication(QMainWindow):
     def close(self):
         super().close()
 
+    def reset_bbox(self):
+        self.image_in_display.reset_crop_bbox()
+        # self.image_out_display.reset_crop_bbox()
+        if hasattr(self, "additional_image_display"):
+            self.additional_image_display.reset_crop_bbox()
+
 
     def _init_ui(self):
         # Main layout
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
 
+        # # Column 2: Input image display
+        # self.column2 = QVBoxLayout()
+        # self.image_in_text = QLabel("Input Image")
+        # self.image_in_display = ImageDisplayWidget(mouse_tracking=False, save_crop_bbox=True)
+        # self.image_in_display.setStyleSheet("border: 3px solid black;")
+        # self.image_in_display.crop_bbox_updated.connect(self.update_input)
+        # self.column2.addLayout(self._create_layout([(self.image_in_text, 0), (self.image_in_display, 1)], type='V'))
+
         # Column 2: Input image display
         self.column2 = QVBoxLayout()
+
+        # Input Image Display
         self.image_in_text = QLabel("Input Image")
         self.image_in_display = ImageDisplayWidget(mouse_tracking=False, save_crop_bbox=True)
         self.image_in_display.setStyleSheet("border: 3px solid black;")
-        self.image_in_display.crop_bbox_updated.connect(self.update_input)
-        self.column2.addLayout(self._create_layout([(self.image_in_text, 0), (self.image_in_display, 1)], type='V'))
+        # self.image_in_display.crop_bbox_updated.connect(self.update_input)
+
+        # Additional Image Display
+        self.additional_image_text = QLabel("Additional Image")
+        self.additional_image_display = ImageDisplayWidget(mouse_tracking=False, save_crop_bbox=True)
+        self.additional_image_display.setStyleSheet("border: 3px solid black;")
+        self.additional_image_display.crop_bbox_updated.connect(self.update_input)
+
+        # Adding widgets to the layout
+        self.column2.addLayout(
+            self._create_layout([(self.image_in_text, 0), (self.image_in_display, 1)], type='V')
+        )
+        self.column2.addLayout(
+            self._create_layout([(self.additional_image_text, 0), (self.additional_image_display, 1)], type='V')
+        )
 
         # Column 3: Output image display
         self.column3 = QVBoxLayout()
@@ -93,8 +124,13 @@ class NetworkVisualizerApplication(QMainWindow):
         # Image/Video Input
         self.image_path_label = QLabel("Image/Video Path:")
         self.image_path_input = QLineEdit()
-        self.load_button = QPushButton("Load Image")
+        self.load_button = QPushButton("Load Source Image")
         self.load_button.clicked.connect(self.load)
+
+        self.image_path_label_target = QLabel("Image/Video Path:")
+        self.image_path_target = QLineEdit()
+        self.load_target_button = QPushButton("Load Target Image")
+        self.load_target_button.clicked.connect(self.load_target)
 
         # RGB, normalize buttons, channel selection spinbox
         self.rgb_button = QCheckBox('RGB')
@@ -109,7 +145,8 @@ class NetworkVisualizerApplication(QMainWindow):
 
         # Reset bbox button
         self.reset_bbox_button = QPushButton("Reset BBox")
-        self.reset_bbox_button.clicked.connect(self.image_in_display.reset_crop_bbox)
+        # self.reset_bbox_button.clicked.connect(self.image_in_display.reset_crop_bbox)
+        self.reset_bbox_button.clicked.connect(self.reset_bbox)
 
         # Help text
         self.help_text_display = QLabel()
@@ -119,6 +156,7 @@ class NetworkVisualizerApplication(QMainWindow):
         self.feature_maps_table =  SelectionTableWidget()
         self.feature_maps_table.table.itemClicked.connect(self.update_feature_img)
         self.column1.addLayout(self._create_layout([self.image_path_label, self.image_path_input, self.load_button]))
+        self.column1.addLayout(self._create_layout([self.image_path_label_target, self.image_path_target, self.load_target_button]))
         self.column1.addLayout(self._create_layout([self.normalize_button,self.rgb_button,self.channel_selector,
                                                     self.channel_selector_label]))
         self.column1.addWidget(self.reset_bbox_button,0)
@@ -149,7 +187,11 @@ class NetworkVisualizerApplication(QMainWindow):
         if self.rgb_button.isChecked() and channel_idx+2 < feature_map.channels:
             feature_img = feature_img[:,:,channel_idx:channel_idx+3]
         else:
-            feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
+            if feature_img.shape[-1] !=3:
+                feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
+            else:
+                feature_img = feature_img[:,:,:channel_idx]
+            # feature_img = feature_img[:,:,channel_idx, None].repeat(3, axis=2)
 
         if self.normalize_button.isChecked():
             feature_img = (feature_img - feature_img.min())/(feature_img.max() - feature_img.min())
@@ -172,21 +214,48 @@ class NetworkVisualizerApplication(QMainWindow):
             self.network_inference(self._input_img)
             self.display_images()
 
+
+    def load_target(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*)")
+        if Path(file_path).suffix in ['.png', '.jpg', '.jpeg']:
+            self.image_path_target.setText(file_path)
+            self._input_img = cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB)
+
+            self._img_target_display = self._input_img
+            # self._img_out_display = self._input_img
+            # self._img_feat_display = self._input_img
+
+            self.network_inference(self._input_img, self._img_target_display)
+            self.display_images()
+
     def display_images(self):
         self.image_in_display.set_image(self._img_in_display.copy())
+        self.additional_image_display.set_image(self._img_target_display.copy())
         self.image_out_display.set_image(self._img_feat_display.copy())
 
 
-    def network_inference(self, img: RGB255):
+    def network_inference(self, img: RGB255, target: RGB255=None):
         if self.image_in_display.crop_bbox is not None:
             x1, y1, x2, y2 = self.image_in_display.crop_bbox
             img = img[y1:y2, x1:x2]
+        if hasattr(self, "_target_img"):
+            if self.additional_image_display.crop_bbox is not None:
+                x1, y1, x2, y2 = self.additional_image_display.crop_bbox
+                target = target[y1:y2, x1:x2]
         img_tensor = np2torch(img)
-        self._result     = self._network(img_tensor)
+
+        if target is not None:
+            img_tensor_target = np2torch(target)
+            self._result = self._network(img_tensor, img_tensor_target)
+        else:
+            self._result     = self._network(img_tensor, img_tensor)
         self._feature_maps = get_feature_maps(self._result)
 
     def update_input(self):
-        self.network_inference(self._input_img)
+        if hasattr(self, "_target_img"):
+            self.network_inference(self._input_img, self._target_img)
+        else:
+            self.network_inference(self._input_img)
         self.display_images()
         self.update_feature_img()
 

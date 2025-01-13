@@ -70,12 +70,12 @@ def get_dummy_loading_img() -> np.ndarray:
     return img
 
 
-def get_default_image() -> np.ndarray:
+def get_default_image(txt=None) -> np.ndarray:
     """Returns a initial image with text on it"""
     img = np.zeros((512, 512, 3), dtype=np.uint8)
     img = cv2.putText(
         img,
-        "Empty ",
+        "Empty " if txt is None else txt,
         (50, 256),
         cv2.FONT_HERSHEY_SIMPLEX,
         1,
@@ -133,7 +133,11 @@ def save_activations_hook(results, name, module, input, output):
     assert isinstance(output, torch.Tensor) or isinstance(output, abc.Sequence), f"output is not a tensor or tuple, but {type(output)}"
     if isinstance(output, abc.Sequence):
         for i, out in enumerate(output):
-            results[f"{name}_{i}"] = out.detach()
+            if isinstance(out, list):
+                for j, inner_out in enumerate(out):
+                    results[f"{name}_{i}_{j}"] = inner_out.detach()
+            else:
+                results[f"{name}_{i}"] = out.detach()
     else:
         results[name] = output.detach()
 
