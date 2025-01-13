@@ -146,6 +146,11 @@ def np2torch(img: RGB255) -> torch.Tensor:
     img = cu.range_255_2(img)
     return img
 
+def np2torch_0_1(img: RGB255) -> torch.Tensor:
+    img = torch.tensor(img).permute(2, 0, 1).unsqueeze(0).float()
+    img = img / 255.
+    return img
+
 def np2qpixmap(img: RGB255) -> QtGui.QPixmap:
     img = QtGui.QImage(img.data, img.shape[1], img.shape[0], img.shape[1] * 3, QtGui.QImage.Format_RGB888)
     return QtGui.QPixmap.fromImage(img)

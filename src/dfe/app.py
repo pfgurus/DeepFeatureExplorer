@@ -14,12 +14,12 @@ from dfe.common.types import RGB255
 from dfe.gui.pyqt.image_widget import ImageDisplayWidget
 from dfe.gui.pyqt.table_widget import SelectionTableWidget
 from dfe.networks.base import UnwrappedNetwork
-from dfe.utils import get_default_image, np2torch, get_feature_maps
+from dfe.utils import get_default_image, np2torch, get_feature_maps, np2torch_0_1
 
 LAYOUTS = {'H': QHBoxLayout, 'V': QVBoxLayout, 'B': QGridLayout}
 
 class NetworkVisualizerApplication(QMainWindow):
-    def __init__(self):
+    def __init__(self, target=False):
         super().__init__()
         self.setWindowTitle("Network Visualizer")
         self.setMinimumSize(1500,500)
@@ -30,14 +30,17 @@ class NetworkVisualizerApplication(QMainWindow):
         # Internals
         self._crop_bbox         = None  # (x1, y1, x2, y2)
         self._input_img         = get_default_image()
-        self._target_img        = get_default_image("target_image")
+
         self._result            = {}
         self._feature_maps      = {}
 
         # Images to display
         self._img_in_display    = self._input_img
-        self._img_target_display    = self._target_img
         self._img_feat_display  = self._input_img
+
+        if target:
+            self._target_img        = get_default_image("target_image")
+            self._img_target_display = self._target_img
 
         self._init_ui()
         self.display_images()
@@ -48,7 +51,10 @@ class NetworkVisualizerApplication(QMainWindow):
     def set_forward(self, forward_func):
         try:
             x = torch.randn(1,3,256,256)
-            out = forward_func(x)
+            if hasattr(self, "_target_img"):
+                out = forward_func(x, x)
+            else:
+                out = forward_func(x)
             assert isinstance(out, dict), f'forward function should return dictionary, not {type(out)}'
         except Exception as e:
             print(e)
@@ -210,8 +216,8 @@ class NetworkVisualizerApplication(QMainWindow):
             self._img_in_display = self._input_img
             self._img_out_display = self._input_img
             self._img_feat_display = self._input_img
-
-            self.network_inference(self._input_img)
+            if not hasattr(self, "_target_img"):
+                self.network_inference(self._input_img)
             self.display_images()
 
 
@@ -242,10 +248,10 @@ class NetworkVisualizerApplication(QMainWindow):
             if self.additional_image_display.crop_bbox is not None:
                 x1, y1, x2, y2 = self.additional_image_display.crop_bbox
                 target = target[y1:y2, x1:x2]
-        img_tensor = np2torch(img)
+        img_tensor = np2torch_0_1(img)
 
         if target is not None:
-            img_tensor_target = np2torch(target)
+            img_tensor_target = np2torch_0_1(target)
             self._result = self._network(img_tensor, img_tensor_target)
         else:
             self._result     = self._network(img_tensor, img_tensor)
@@ -273,7 +279,7 @@ class NetworkVisualizerApplication(QMainWindow):
 class NetworkVisualizer:
     def __init__(self):
         self.app = QApplication(sys.argv)
-        self.viz = NetworkVisualizerApplication()
+        self.viz = NetworkVisualizerApplication(target=True)
 
     def register_module(self, module, depth=1, name=None):
         self.viz.register_module(module, depth, name)
