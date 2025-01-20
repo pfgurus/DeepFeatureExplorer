@@ -129,13 +129,18 @@ def save_activations_hook(results, name, module, input, output):
     Usage:
     model.layer.register_forward_hook(partial(save_activations_hook, results, 'layer_name'))
     '''
-
-    assert isinstance(output, torch.Tensor) or isinstance(output, abc.Sequence), f"output is not a tensor or tuple, but {type(output)}"
     if isinstance(output, abc.Sequence):
         for i, out in enumerate(output):
-            results[f"{name}_{i}"] = out.detach()
-    else:
+            results[f"{name}[{i}]"] = out.detach()
+    elif isinstance(output, dict):
+        for k, v in output.items():
+            if not isinstance(v, torch.Tensor):
+                raise ValueError(f"Unsupported value type {type(output)} for key {k}")
+            results[f"{name}[{k}]"] = v.detach()
+    elif isinstance(output, torch.Tensor):
         results[name] = output.detach()
+    else:
+        raise ValueError(f"Unsupported output type {type(output)}")
 
 def np2torch(img: RGB255) -> torch.Tensor:
     img = torch.tensor(img).permute(2, 0, 1).unsqueeze(0).float()
